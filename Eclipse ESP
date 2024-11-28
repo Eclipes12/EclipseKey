@@ -1,0 +1,76 @@
+-- Roblox Lua Script for ESP Toggle
+
+local espEnabled = false
+local ESP = game:GetService("CoreGui"):WaitForChild("ESP")
+local UserInputService = game:GetService("UserInputService")
+
+-- Function to create ESP for players
+local function createESP(player)
+    if player.Character and player.Character:FindFirstChild("Head") then
+        local espPart = Instance.new("Part")
+        espPart.Size = Vector3.new(2, 2, 2)
+        espPart.Anchored = true
+        espPart.CanCollide = false
+        espPart.Parent = player.Character
+        espPart.Position = player.Character.Head.Position + Vector3.new(0, 3, 0)
+        espPart.BrickColor = BrickColor.new("Bright blue")
+        espPart.Transparency = 0.5
+        espPart.Name = "ESPPart"
+        
+        -- Update the ESP position to follow the player's head
+        local espUpdater = game:GetService("RunService").Heartbeat:Connect(function()
+            if espPart.Parent == player.Character then
+                espPart.Position = player.Character.Head.Position + Vector3.new(0, 3, 0)
+            else
+                espUpdater:Disconnect()
+            end
+        end)
+    end
+end
+
+-- Function to remove ESP from players
+local function removeESP(player)
+    if player.Character then
+        local espPart = player.Character:FindFirstChild("ESPPart")
+        if espPart then
+            espPart:Destroy()
+        end
+    end
+end
+
+-- Toggle ESP functionality
+local function toggleESP()
+    espEnabled = not espEnabled
+
+    if espEnabled then
+        -- Create ESP for all players
+        for _, player in pairs(game.Players:GetPlayers()) do
+            createESP(player)
+        end
+    else
+        -- Remove ESP from all players
+        for _, player in pairs(game.Players:GetPlayers()) do
+            removeESP(player)
+        end
+    end
+end
+
+-- Listen for key press to toggle ESP
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.E then -- 'E' key toggles ESP
+        toggleESP()
+    end
+end)
+
+-- Update ESP whenever a new player joins
+game.Players.PlayerAdded:Connect(function(player)
+    if espEnabled then
+        createESP(player)
+    end
+end)
+
+-- Remove ESP when players leave
+game.Players.PlayerRemoving:Connect(function(player)
+    removeESP(player)
+end)
