@@ -1,79 +1,272 @@
-local EclipseLib = {}
-EclipseLib.__index = EclipseLib
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local HttpService = game:GetService("HttpService")
 
--- Default settings
-EclipseLib.Settings = {
-    Theme = {
-        BackgroundColor = Color3.fromRGB(30, 30, 30),
-        ButtonColor = Color3.fromRGB(45, 45, 45),
-        TextColor = Color3.fromRGB(255, 255, 255),
-        CornerRadius = UDim.new(0, 5)
-    }
+local EclipseLib = {
+    Elements = {},
+    ThemeObjects = {},
+    Connections = {},
+    Flags = {},
+    Themes = {
+        Default = {
+            Main = Color3.fromRGB(135, 206, 235),    -- Light Sky Blue (background)
+            Second = Color3.fromRGB(173, 216, 230),  -- Light Blue (lighter elements)
+            Stroke = Color3.fromRGB(70, 130, 180),   -- Steel Blue (for borders/strokes)
+            Divider = Color3.fromRGB(176, 224, 230), -- Powder Blue (used for dividing lines)
+            Text = Color3.fromRGB(0, 0, 0),           -- Black (for text)
+            TextDark = Color3.fromRGB(0, 0, 139)      -- Dark Blue (for dark text, optional)
+        },
+        Rose = {
+            Main = Color3.fromRGB(255, 182, 193),     -- Light Pink (background)
+            Second = Color3.fromRGB(255, 105, 180),   -- Hot Pink (lighter elements)
+            Stroke = Color3.fromRGB(255, 20, 147),    -- Deep Pink (for borders/strokes)
+            Divider = Color3.fromRGB(255, 228, 225),  -- Misty Rose (used for dividing lines)
+            Text = Color3.fromRGB(0, 0, 0),            -- Black (for text)
+            TextDark = Color3.fromRGB(255, 20, 147)    -- Deep Pink (for dark text, optional)
+        },
+        -- Add other themes like Blue, Purple, Gray, etc.
+    },
+    SelectedTheme = "Default",
+    Folder = nil,
+    SaveCfg = false
 }
 
--- Store created elements
-EclipseLib.Elements = {}
+local Icons = {}
 
--- Helper function to create UI components
-local function create(instanceType, properties)
-    local instance = Instance.new(instanceType)
-    for prop, value in pairs(properties) do
-        instance[prop] = value
-    end
-    return instance
+local Success, Response = pcall(function()
+    Icons = HttpService:JSONDecode(game:HttpGetAsync("https://cdn.discordapp.com/attachments/1311412106549133523/1311466353827385395/Radioactive-1--Streamline-Core.png?ex=6748f5b8&is=6747a438&hm=0aea12727268c76788b82894871a930fcbaffd3f879bcccd0d641d2b62c33a82&")).icons
+end)
+
+if not Success then
+    warn("\nEclipse Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
 end
 
--- Create a new window
-function EclipseLib:MakeWindow(config)
-    local screenGui = create("ScreenGui", {Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")})
-    local mainFrame = create("Frame", {
-        Parent = screenGui,
-        Size = UDim2.new(0, 500, 0, 300),
-        BackgroundColor3 = self.Settings.Theme.BackgroundColor,
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0)
-    })
-
-    local uiCorner = create("UICorner", {
-        Parent = mainFrame,
-        CornerRadius = self.Settings.Theme.CornerRadius
-    })
-
-    local title = create("TextLabel", {
-        Parent = mainFrame,
-        Size = UDim2.new(1, 0, 0, 50),
-        BackgroundTransparency = 1,
-        Text = config.Name or "Eclipse Hub",
-        TextColor3 = self.Settings.Theme.TextColor,
-        Font = Enum.Font.SourceSansBold,
-        TextSize = 20
-    })
-
-    -- Add intro animation if enabled
-    if config.IntroEnabled then
-        local introFrame = create("Frame", {
-            Parent = screenGui,
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundColor3 = self.Settings.Theme.BackgroundColor
-        })
-
-        local introLabel = create("TextLabel", {
-            Parent = introFrame,
-            Text = config.IntroText or "Welcome!",
-            TextColor3 = self.Settings.Theme.TextColor,
-            Font = Enum.Font.SourceSansBold,
-            TextSize = 36,
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Position = UDim2.new(0.5, 0, 0.5, 0)
-        })
-
-        wait(2)
-        introFrame:Destroy()
+local function GetIcon(IconName)
+    if Icons[IconName] then
+        return Icons[IconName]
+    else
+        return nil
     end
+end
 
-    return mainFrame
+local Eclipse = Instance.new("ScreenGui")
+Eclipse.Name = "Eclipse"
+if syn then
+    syn.protect_gui(Eclipse)
+    Eclipse.Parent = game.CoreGui
+else
+    Eclipse.Parent = gethui() or game.CoreGui
+end
+
+if gethui then
+    for _, Interface in ipairs(gethui():GetChildren()) do
+        if Interface.Name == Eclipse.Name and Interface ~= Eclipse then
+            Interface:Destroy()
+        end
+    end
+else
+    for _, Interface in ipairs(game.CoreGui:GetChildren()) do
+        if Interface.Name == EclipseLib.Name and Interface ~= Eclipse then
+            Interface:Destroy()
+        end
+    end
+end
+
+function EclipseLib:IsRunning()
+    if gethui then
+        return Eclipse.Parent == gethui()
+    else
+        return Eclipse.Parent == game:GetService("CoreGui")
+    end
+end
+
+local function AddConnection(Signal, Function)
+    if not EclipseLib:IsRunning() then return end
+    local SignalConnect = Signal:Connect(Function)
+    table.insert(EclipseLib.Connections, SignalConnect)
+    return SignalConnect
+end
+
+task.spawn(function()
+    while EclipseLib:IsRunning() do
+        wait()
+    end
+    for _, Connection in next, EclipseLib.Connections do
+        Connection:Disconnect()
+    end
+end)
+
+local function AddDraggingFunctionality(DragPoint, Main)
+    pcall(function()
+        local Dragging, DragInput, MousePos, FramePos = false
+        DragPoint.InputBegan:Connect(function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                Dragging = true
+                MousePos = Input.Position
+                FramePos = Main.Position
+
+                Input.Changed:Connect(function()
+                    if Input.UserInputState == Enum.UserInputState.End then
+                        Dragging = false
+                    end
+                end)
+            end
+        end)
+        DragPoint.InputChanged:Connect(function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseMovement then
+                DragInput = Input
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(Input)
+            if Input == DragInput and Dragging then
+                local Delta = Input.Position - MousePos
+                TweenService:Create(Main, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), 
+                    {Position  = UDim2.new(FramePos.X.Scale,FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)}):Play()
+            end
+        end)
+    end)
+end
+
+-- Utility function to create UI elements
+local function Create(Name, Properties, Children)
+    local Object = Instance.new(Name)
+    for i, v in next, Properties or {} do
+        Object[i] = v
+    end
+    for i, v in next, Children or {} do
+        v.Parent = Object
+    end
+    return Object
+end
+
+-- Functions to generate UI elements (Corners, Frames, Buttons, etc.)
+CreateElement("Corner", function(Scale, Offset)
+    local Corner = Create("UICorner", {
+        CornerRadius = UDim.new(Scale or 0, Offset or 10)
+    })
+    return Corner
+end)
+
+CreateElement("Button", function()
+    local Button = Create("TextButton", {
+        Text = "",
+        AutoButtonColor = false,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0
+    })
+    return Button
+end)
+
+-- Example of adding a new theme dynamically
+local function SetTheme()
+    for Name, Type in pairs(EclipseLib.ThemeObjects) do
+        for _, Object in pairs(Type) do
+            Object[ReturnProperty(Object)] = EclipseLib.Themes[EclipseLib.SelectedTheme][Name]
+        end    
+    end    
+end
+
+-- Save and Load Configuration
+local function LoadCfg(Config)
+    local Data = HttpService:JSONDecode(Config)
+    table.foreach(Data, function(a, b)
+        if EclipseLib.Flags[a] then
+            spawn(function() 
+                if EclipseLib.Flags[a].Type == "Colorpicker" then
+                    EclipseLib.Flags[a]:Set(UnpackColor(b))
+                else
+                    EclipseLib.Flags[a]:Set(b)
+                end    
+            end)
+        else
+            warn("Eclipse Library Config Loader - Could not find ", a ,b)
+        end
+    end)
+end
+
+local function SaveCfg(Name)
+    local Data = {}
+    for i, v in pairs(EclipseLib.Flags) do
+        if v.Save then
+            if v.Type == "Colorpicker" then
+                Data[i] = PackColor(v.Value)
+            else
+                Data[i] = v.Value
+            end
+        end    
+    end
+    writefile(EclipseLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
+end
+
+-- Initialize the library and make sure all the configurations are set up
+function EclipseLib:Init()
+    if EclipseLib.SaveCfg then    
+        pcall(function()
+            if isfile(EclipseLib.Folder .. "/" .. game.GameId .. ".txt") then
+                LoadCfg(readfile(EclipseLib.Folder .. "/" .. game.GameId .. ".txt"))
+                EclipseLib:MakeNotification({
+                    Name = "Configuration",
+                    Content = "Auto-loaded configuration for the game " .. game.GameId .. ".",
+                    Time = 5
+                })
+            end
+        end)        
+    end    
+end    
+
+-- Example function to create a window
+function EclipseLib:MakeWindow(WindowConfig)
+    local FirstTab = true
+    local Minimized = false
+    local Loaded = false
+    local UIHidden = false
+
+    WindowConfig = WindowConfig or {}
+    WindowConfig.Name = WindowConfig.Name or "Eclipse Library"
+    WindowConfig.ConfigFolder = WindowConfig.ConfigFolder or WindowConfig.Name
+    WindowConfig.SaveConfig = WindowConfig.SaveConfig or false
+    WindowConfig.HidePremium = WindowConfig.HidePremium or false
+    if WindowConfig.IntroEnabled == nil then
+        WindowConfig.IntroEnabled = true
+    end
+    WindowConfig.IntroText = WindowConfig.IntroText or "Eclipse Library"
+    WindowConfig.CloseCallback = WindowConfig.CloseCallback or function() end
+    WindowConfig.ShowIcon = WindowConfig.ShowIcon or false
+    WindowConfig.Icon = WindowConfig.Icon or "rbxassetid://8834748103"
+    WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://8834748103"
+    EclipseLib.Folder = WindowConfig.ConfigFolder
+    EclipseLib.SaveCfg = WindowConfig.SaveConfig
+
+    -- Create the main window
+    local Window = Create("Frame", {
+        Size = UDim2.new(0, 400, 0, 300),
+        Position = UDim2.new(0.5, -200, 0.5, -150),
+        BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main,
+        BorderSizePixel = 0,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Name = "MainWindow"
+    })
+    local TitleBar = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke,
+        BorderSizePixel = 0
+    }, { 
+        Create("TextLabel", {
+            Text = WindowConfig.IntroText,
+            Size = UDim2.new(1, 0, 1, 0),
+            TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text,
+            Font = Enum.Font.Gotham,
+            TextSize = 20,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center
+        }) 
+    })
+
+    -- Drag functionality for the window
+    AddDraggingFunctionality(TitleBar, Window)
 end
 
 return EclipseLib
