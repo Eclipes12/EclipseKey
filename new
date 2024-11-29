@@ -4,7 +4,7 @@ local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 
--- EclipseLib Definition
+-- EclipseLib Definition (Simplified for the window creation)
 local EclipseLib = {
     Elements = {},
     ThemeObjects = {},
@@ -71,70 +71,28 @@ local function CreateLoadingScreen()
     end)
 end
 
--- Create the main UI after loading screen finishes
+-- Function to create the main UI after the loading screen finishes
 local function CreateMainUI()
-    -- Example of creating a button in the main UI
-    CreateButton("Click Me", UDim2.new(0, 200, 0, 50), UDim2.new(0.5, -100, 0.5, -25), function()
-        print("Button clicked!")
-    end)
-
-    -- Example of creating a window in the main UI
-    CreateWindow("My Window", UDim2.new(0, 400, 0, 300), UDim2.new(0.5, -200, 0.5, -150), function()
-        print("Window closed!")
-    end)
-end
-
--- Function to create a button
-local function CreateButton(Text, Size, Position, ClickCallback)
-    local Button = Instance.new("TextButton")
-    Button.Size = Size
-    Button.Position = Position
-    Button.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-    Button.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    Button.Text = Text
-    Button.Font = Enum.Font.Gotham
-    Button.TextSize = 18
-    Button.BorderSizePixel = 2
-    Button.BorderColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke
-    Button.Parent = game.Players.LocalPlayer.PlayerGui:WaitForChild("ScreenGui")
-
-    -- Hover effect
-    Button.MouseEnter:Connect(function()
-        Button.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Second
-    end)
-    
-    Button.MouseLeave:Connect(function()
-        Button.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-    end)
-
-    -- Button click functionality
-    Button.MouseButton1Click:Connect(function()
-        if ClickCallback then
-            ClickCallback()
-        end
-    end)
-end
-
--- Function to create a window
-local function CreateWindow(Name, Size, Position, CloseCallback)
+    -- Create the window
     local Window = Instance.new("Frame")
-    Window.Size = Size
-    Window.Position = Position
+    Window.Size = UDim2.new(0, 400, 0, 300)
+    Window.Position = UDim2.new(0.5, -200, 0.5, -150)
     Window.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
     Window.BorderSizePixel = 2
     Window.BorderColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke
-    Window.Parent = game.Players.LocalPlayer.PlayerGui:WaitForChild("ScreenGui")
+    Window.Parent = game.Players.LocalPlayer.PlayerGui
 
+    -- Title for the window
     local Title = Instance.new("TextLabel")
     Title.Size = UDim2.new(1, 0, 0, 50)
     Title.BackgroundTransparency = 1
-    Title.Text = Name
+    Title.Text = "Eclipse UI Window"
     Title.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
     Title.Font = Enum.Font.GothamBold
     Title.TextSize = 24
     Title.Parent = Window
 
-    -- Close Button
+    -- Close Button for the window
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 50, 0, 50)
     CloseButton.Position = UDim2.new(1, -50, 0, 0)
@@ -147,37 +105,23 @@ local function CreateWindow(Name, Size, Position, CloseCallback)
 
     CloseButton.MouseButton1Click:Connect(function()
         Window:Destroy()
-        if CloseCallback then
-            CloseCallback()
-        end
     end)
 
-    -- Drag functionality
-    local dragging = false
-    local dragInput, dragStart, startPos
-    local function beginDrag(input)
-        dragging = true
-        dragStart = input.Position
-        startPos = Window.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
+    -- Create a button inside the window
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 200, 0, 50)
+    button.Position = UDim2.new(0.5, -100, 0.5, -25)
+    button.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Second
+    button.Text = "Click Me!"
+    button.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 18
+    button.Parent = Window
 
-    local function updateDrag(input)
-        if dragging then
-            local delta = input.Position - dragStart
-            Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end
-
-    Window.InputBegan:Connect(beginDrag)
-    Window.InputChanged:Connect(updateDrag)
-
-    return Window
+    button.MouseButton1Click:Connect(function()
+        print("Button Clicked!")
+    end)
 end
 
--- Start the loading screen when the script runs
+-- Start by showing the loading screen
 CreateLoadingScreen()
