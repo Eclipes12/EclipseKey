@@ -8,22 +8,22 @@ function EclipseLib:MakeWindow(config)
     local Panel = Instance.new("Frame")
     local LeftSidebar = Instance.new("Frame")
 
-    -- Window properties
+    -- Configure the window
     Window.Name = config.Name or "Window"
     Window.Size = UDim2.new(0, 608, 0, 427)
     Window.Position = UDim2.new(0.5, -304, 0.5, -213)
     Window.BackgroundColor3 = Color3.fromRGB(32, 34, 33)
     Window.BorderSizePixel = 0
+    Window.AnchorPoint = Vector2.new(0.5, 0.5)
 
-    -- Panel for Title
+    -- Title bar panel
     Panel.Parent = Window
-    Panel.Size = UDim2.new(1, -20, 0, 50)
-    Panel.Position = UDim2.new(0, 10, 0, 10)
+    Panel.Size = UDim2.new(1, 0, 0, 50)
     Panel.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
 
     Title.Parent = Panel
-    Title.Size = UDim2.new(1, -10, 1, -10)
-    Title.Position = UDim2.new(0, 5, 0, 5)
+    Title.Size = UDim2.new(1, -10, 1, 0)
+    Title.Position = UDim2.new(0, 5, 0, 0)
     Title.Text = config.Name or "Eclipse UI"
     Title.TextColor3 = Color3.fromRGB(240, 240, 240)
     Title.Font = Enum.Font.SourceSansBold
@@ -32,23 +32,30 @@ function EclipseLib:MakeWindow(config)
 
     -- Sidebar for tabs
     LeftSidebar.Parent = Window
-    LeftSidebar.Size = UDim2.new(0, 150, 1, -70)
-    LeftSidebar.Position = UDim2.new(0, 10, 0, 60)
+    LeftSidebar.Size = UDim2.new(0, 150, 1, -60)
+    LeftSidebar.Position = UDim2.new(0, 0, 0, 60)
     LeftSidebar.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
 
+    -- Attach methods to the Window object
+    function Window:MakeTab(config)
+        return EclipseLib:MakeTab(self, config)
+    end
+
     self.Elements.Window = Window
+    Window.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
     return Window
 end
 
 -- Create a tab
-function EclipseLib:MakeTab(config)
+function EclipseLib:MakeTab(window, config)
     local Tab = Instance.new("TextButton")
     Tab.Size = UDim2.new(1, -20, 0, 40)
-    Tab.Position = UDim2.new(0, 10, 0, #self.Elements.Tabs * 50)
-    Tab.Text = config.Name
+    Tab.Position = UDim2.new(0, 10, 0, (#window:GetChildren() - 1) * 50)
+    Tab.Text = config.Name or "Tab"
     Tab.Font = Enum.Font.SourceSansBold
     Tab.TextColor3 = Color3.fromRGB(255, 255, 255)
     Tab.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Tab.Parent = window.LeftSidebar
 
     -- Optional icon
     if config.Icon then
@@ -60,53 +67,18 @@ function EclipseLib:MakeTab(config)
         Icon.BackgroundTransparency = 1
     end
 
-    table.insert(self.Elements.Tabs, Tab)
+    -- Add tab functionality
+    Tab.MouseButton1Click:Connect(function()
+        print(config.Name .. " tab clicked!")
+    end)
+
     return Tab
-end
-
--- Add a section
-function EclipseLib:AddSection(tab, config)
-    local Section = Instance.new("Frame")
-    Section.Size = UDim2.new(1, -20, 0, 100)
-    Section.Position = UDim2.new(0, 10, 0, #self.Elements.Sections * 110)
-    Section.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
-
-    local SectionTitle = Instance.new("TextLabel")
-    SectionTitle.Parent = Section
-    SectionTitle.Size = UDim2.new(1, -10, 0, 30)
-    SectionTitle.Position = UDim2.new(0, 5, 0, 5)
-    SectionTitle.Text = config.Name
-    SectionTitle.TextColor3 = Color3.fromRGB(240, 240, 240)
-    SectionTitle.Font = Enum.Font.SourceSansBold
-    SectionTitle.TextScaled = true
-    SectionTitle.BackgroundTransparency = 1
-
-    table.insert(self.Elements.Sections, Section)
-    return Section
-end
-
--- Add a button
-function EclipseLib:AddButton(section, config)
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, -20, 0, 40)
-    Button.Position = UDim2.new(0, 10, 0, #self.Elements.Buttons * 50)
-    Button.Text = config.Name
-    Button.Font = Enum.Font.SourceSansBold
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-
-    -- Add callback
-    Button.MouseButton1Click:Connect(config.Callback)
-
-    table.insert(self.Elements.Buttons, Button)
-    return Button
 end
 
 -- Initialize UI
 function EclipseLib:Init()
-    for _, element in pairs(self.Elements) do
-        element.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-    end
+    local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    self.Elements.Window.Parent = PlayerGui
 end
 
 return EclipseLib
