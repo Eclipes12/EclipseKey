@@ -6,267 +6,236 @@ local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 
 local EclipseLib = {
-    Elements = {},
-    ThemeObjects = {},
-    Connections = {},
-    Flags = {},
-    Themes = {
-        Default = {
-            Main = Color3.fromRGB(135, 206, 235),    -- Light Sky Blue (background)
-            Second = Color3.fromRGB(173, 216, 230),  -- Light Blue (lighter elements)
-            Stroke = Color3.fromRGB(70, 130, 180),   -- Steel Blue (for borders/strokes)
-            Divider = Color3.fromRGB(176, 224, 230), -- Powder Blue (used for dividing lines)
-            Text = Color3.fromRGB(0, 0, 0),           -- Black (for text)
-            TextDark = Color3.fromRGB(0, 0, 139)      -- Dark Blue (for dark text, optional)
-        },
-        Rose = {
-            Main = Color3.fromRGB(255, 182, 193),     -- Light Pink (background)
-            Second = Color3.fromRGB(255, 105, 180),   -- Hot Pink (lighter elements)
-            Stroke = Color3.fromRGB(255, 20, 147),    -- Deep Pink (for borders/strokes)
-            Divider = Color3.fromRGB(255, 228, 225),  -- Misty Rose (used for dividing lines)
-            Text = Color3.fromRGB(0, 0, 0),            -- Black (for text)
-            TextDark = Color3.fromRGB(255, 20, 147)    -- Deep Pink (for dark text, optional)
-        },
-        -- Add other themes like Blue, Purple, Gray, etc.
-    },
-    SelectedTheme = "Default",
-    Folder = nil,
-    SaveCfg = false
+	Elements = {},
+	ThemeObjects = {},
+	Connections = {},
+	Flags = {},
+	Themes = {
+		Default = {
+			Main = Color3.fromRGB(135, 206, 235),    -- Light Sky Blue (background)
+			Second = Color3.fromRGB(173, 216, 230),  -- Light Blue (lighter elements)
+			Stroke = Color3.fromRGB(70, 130, 180),   -- Steel Blue (for borders/strokes)
+			Divider = Color3.fromRGB(176, 224, 230), -- Powder Blue (used for dividing lines)
+			Text = Color3.fromRGB(0, 0, 0),           -- Black (for text)
+			TextDark = Color3.fromRGB(0, 0, 139)      -- Dark Blue (for dark text, optional)
+		}
+	},
+	SelectedTheme = "Default",
+	Folder = nil,
+	SaveCfg = false
 }
 
 local Icons = {}
 
+-- Load Feather Icons (optional)
 local Success, Response = pcall(function()
-    Icons = HttpService:JSONDecode(game:HttpGetAsync("https://cdn.discordapp.com/attachments/1311412106549133523/1311466353827385395/Radioactive-1--Streamline-Core.png?ex=6748f5b8&is=6747a438&hm=0aea12727268c76788b82894871a930fcbaffd3f879bcccd0d641d2b62c33a82&")).icons
+	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://cdn.discordapp.com/attachments/1311412106549133523/1311466353827385395/Radioactive-1--Streamline-Core.png?ex=6748f5b8&is=6747a438&hm=0aea12727268c76788b82894871a930fcbaffd3f879bcccd0d641d2b62c33a82&")).icons
 end)
 
 if not Success then
-    warn("\nEclipse Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
-end
+	warn("\nEclipse Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
+end	
 
 local function GetIcon(IconName)
-    if Icons[IconName] then
-        return Icons[IconName]
-    else
-        return nil
-    end
+	if Icons[IconName] then
+		return Icons[IconName]
+	else
+		return nil
+	end
 end
 
 local Eclipse = Instance.new("ScreenGui")
 Eclipse.Name = "Eclipse"
 if syn then
-    syn.protect_gui(Eclipse)
-    Eclipse.Parent = game.CoreGui
+	syn.protect_gui(Eclipse)
+	Eclipse.Parent = game.CoreGui
 else
-    Eclipse.Parent = gethui() or game.CoreGui
+	Eclipse.Parent = gethui() or game.CoreGui
 end
 
 if gethui then
-    for _, Interface in ipairs(gethui():GetChildren()) do
-        if Interface.Name == Eclipse.Name and Interface ~= Eclipse then
-            Interface:Destroy()
-        end
-    end
-else
-    for _, Interface in ipairs(game.CoreGui:GetChildren()) do
-        if Interface.Name == EclipseLib.Name and Interface ~= Eclipse then
-            Interface:Destroy()
-        end
-    end
+	for _, Interface in ipairs(gethui():GetChildren()) do
+		if Interface.Name == Eclipse.Name and Interface ~= Eclipse then
+			Interface:Destroy()
+		end
+	else
+		for _, Interface in ipairs(game.CoreGui:GetChildren()) do
+			if Interface.Name == EclipseLib.Name and Interface ~= Eclipse then
+				Interface:Destroy()
+			end
+		end
 end
 
-function EclipseLib:IsRunning()
-    if gethui then
-        return Eclipse.Parent == gethui()
-    else
-        return Eclipse.Parent == game:GetService("CoreGui")
-    end
+-- Function to create a Color Picker
+function EclipseLib:CreateColorPicker(parent)
+	local ColorpickerBox = Instance.new("Frame")
+	ColorpickerBox.Size = UDim2.new(0, 24, 0, 24)
+	ColorpickerBox.Position = UDim2.new(0.5, -12, 0.5, 0)
+	ColorpickerBox.AnchorPoint = Vector2.new(0.5, 0.5)
+	ColorpickerBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	ColorpickerBox.BorderSizePixel = 0
+	ColorpickerBox.Parent = parent
+
+	local ColorpickerFrame = Instance.new("Frame")
+	ColorpickerFrame.Size = UDim2.new(1, 0, 0, 38)
+	ColorpickerFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	ColorpickerFrame.Parent = parent
+	
+	local ColorPickerToggle = Instance.new("TextButton")
+	ColorPickerToggle.Text = "Pick Color"
+	ColorPickerToggle.Size = UDim2.new(0, 150, 0, 50)
+	ColorPickerToggle.Position = UDim2.new(0.5, -75, 0.5, 50)
+	ColorPickerToggle.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+	ColorPickerToggle.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+	ColorPickerToggle.Font = Enum.Font.Gotham
+	ColorPickerToggle.TextSize = 18
+	ColorPickerToggle.Parent = parent
+	
+	local function UpdateColorPicker()
+		ColorpickerBox.BackgroundColor3 = Color3.fromHSV(math.random(), 1, 1)  -- Update to random color for simplicity
+		ColorPickerToggle.BackgroundColor3 = ColorpickerBox.BackgroundColor3
+	end
+	
+	ColorPickerToggle.MouseButton1Click:Connect(UpdateColorPicker)
 end
 
-local function AddConnection(Signal, Function)
-    if not EclipseLib:IsRunning() then return end
-    local SignalConnect = Signal:Connect(Function)
-    table.insert(EclipseLib.Connections, SignalConnect)
-    return SignalConnect
+-- Function to create Slider
+function EclipseLib:CreateSlider(parent, min, max, initial, callback)
+	local slider = Instance.new("Frame")
+	slider.Size = UDim2.new(0, 200, 0, 25)
+	slider.Position = UDim2.new(0.5, -100, 0.5, 100)
+	slider.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+	slider.Parent = parent
+	
+	local sliderBar = Instance.new("Frame")
+	sliderBar.Size = UDim2.new(1, 0, 0, 5)
+	sliderBar.Position = UDim2.new(0, 0, 0.5, -2)
+	sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	sliderBar.Parent = slider
+	
+	local knob = Instance.new("Frame")
+	knob.Size = UDim2.new(0, 10, 0, 25)
+	knob.Position = UDim2.new(initial / max, -5, 0, 0)
+	knob.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	knob.Parent = slider
+	
+	local dragging = false
+	knob.MouseButton1Down:Connect(function()
+		dragging = true
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging then
+			local position = math.clamp((input.Position.X - slider.Position.X.Offset) / slider.Size.X.Offset, 0, 1)
+			knob.Position = UDim2.new(position, -5, 0, 0)
+			callback(position * max)
+		end
+	end)
+	
+	UserInputService.InputEnded:Connect(function(input)
+		if dragging then
+			dragging = false
+		end
+	end)
 end
 
-task.spawn(function()
-    while EclipseLib:IsRunning() do
-        wait()
-    end
-    for _, Connection in next, EclipseLib.Connections do
-        Connection:Disconnect()
-    end
-end)
-
-local function AddDraggingFunctionality(DragPoint, Main)
-    pcall(function()
-        local Dragging, DragInput, MousePos, FramePos = false
-        DragPoint.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                Dragging = true
-                MousePos = Input.Position
-                FramePos = Main.Position
-
-                Input.Changed:Connect(function()
-                    if Input.UserInputState == Enum.UserInputState.End then
-                        Dragging = false
-                    end
-                end)
-            end
-        end)
-        DragPoint.InputChanged:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseMovement then
-                DragInput = Input
-            end
-        end)
-        UserInputService.InputChanged:Connect(function(Input)
-            if Input == DragInput and Dragging then
-                local Delta = Input.Position - MousePos
-                TweenService:Create(Main, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), 
-                    {Position  = UDim2.new(FramePos.X.Scale,FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)}):Play()
-            end
-        end)
-    end)
+-- Function to create Toggle Button
+function EclipseLib:CreateToggleButton(parent)
+	local toggleButton = Instance.new("TextButton")
+	toggleButton.Size = UDim2.new(0, 150, 0, 50)
+	toggleButton.Position = UDim2.new(0.5, -75, 0.5, 150)
+	toggleButton.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+	toggleButton.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+	toggleButton.Font = Enum.Font.Gotham
+	toggleButton.TextSize = 18
+	toggleButton.Text = "Toggle"
+	toggleButton.Parent = parent
+	
+	local isOn = false
+	toggleButton.MouseButton1Click:Connect(function()
+		isOn = not isOn
+		toggleButton.BackgroundColor3 = isOn and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+	end)
 end
 
--- Utility function to create UI elements
-local function Create(Name, Properties, Children)
-    local Object = Instance.new(Name)
-    for i, v in next, Properties or {} do
-        Object[i] = v
-    end
-    for i, v in next, Children or {} do
-        v.Parent = Object
-    end
-    return Object
+-- Function to create Text Box
+function EclipseLib:CreateTextBox(parent)
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(0, 200, 0, 50)
+	textBox.Position = UDim2.new(0.5, -100, 0.5, 200)
+	textBox.PlaceholderText = "Enter text"
+	textBox.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+	textBox.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+	textBox.Font = Enum.Font.Gotham
+	textBox.TextSize = 18
+	textBox.Parent = parent
 end
 
--- Functions to generate UI elements (Corners, Frames, Buttons, etc.)
-CreateElement("Corner", function(Scale, Offset)
-    local Corner = Create("UICorner", {
-        CornerRadius = UDim.new(Scale or 0, Offset or 10)
-    })
-    return Corner
-end)
-
-CreateElement("Button", function()
-    local Button = Create("TextButton", {
-        Text = "",
-        AutoButtonColor = false,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0
-    })
-    return Button
-end)
-
--- Example of adding a new theme dynamically
-local function SetTheme()
-    for Name, Type in pairs(EclipseLib.ThemeObjects) do
-        for _, Object in pairs(Type) do
-            Object[ReturnProperty(Object)] = EclipseLib.Themes[EclipseLib.SelectedTheme][Name]
-        end    
-    end    
+-- Function to create Theme Picker
+function EclipseLib:CreateThemePicker(parent)
+	local themeButton = Instance.new("TextButton")
+	themeButton.Size = UDim2.new(0, 150, 0, 50)
+	themeButton.Position = UDim2.new(0.5, -75, 0.5, 300)
+	themeButton.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+	themeButton.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+	themeButton.Font = Enum.Font.Gotham
+	themeButton.TextSize = 18
+	themeButton.Text = "Pick Theme"
+	themeButton.Parent = parent
+	
+	themeButton.MouseButton1Click:Connect(function()
+		EclipseLib.SelectedTheme = EclipseLib.SelectedTheme == "Default" and "Dark" or "Default"
+		themeButton.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+		themeButton.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+	end)
 end
 
--- Save and Load Configuration
-local function LoadCfg(Config)
-    local Data = HttpService:JSONDecode(Config)
-    table.foreach(Data, function(a, b)
-        if EclipseLib.Flags[a] then
-            spawn(function() 
-                if EclipseLib.Flags[a].Type == "Colorpicker" then
-                    EclipseLib.Flags[a]:Set(UnpackColor(b))
-                else
-                    EclipseLib.Flags[a]:Set(b)
-                end    
-            end)
-        else
-            warn("Eclipse Library Config Loader - Could not find ", a ,b)
-        end
-    end)
+-- Function to create Notification
+function EclipseLib:MakeNotification(config)
+	local notification = Instance.new("Frame")
+	notification.Size = UDim2.new(0, 300, 0, 100)
+	notification.Position = UDim2.new(0.5, -150, 0.5, -50)
+	notification.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+	notification.Parent = Eclipse
+	
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Size = UDim2.new(1, 0, 0.5, 0)
+	titleLabel.Text = config.title
+	titleLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 18
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Parent = notification
+	
+	local messageLabel = Instance.new("TextLabel")
+	messageLabel.Size = UDim2.new(1, 0, 0.5, 0)
+	messageLabel.Text = config.message
+	messageLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+	messageLabel.Font = Enum.Font.Gotham
+	messageLabel.TextSize = 16
+	messageLabel.BackgroundTransparency = 1
+	messageLabel.Parent = notification
+	
+	local closeButton = Instance.new("TextButton")
+	closeButton.Text = "Close"
+	closeButton.Size = UDim2.new(0, 100, 0, 40)
+	closeButton.Position = UDim2.new(0.5, -50, 1, -40)
+	closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	closeButton.Font = Enum.Font.GothamBold
+	closeButton.TextSize = 18
+	closeButton.Parent = notification
+	
+	closeButton.MouseButton1Click:Connect(function()
+		notification:Destroy()
+	end)
 end
 
-local function SaveCfg(Name)
-    local Data = {}
-    for i, v in pairs(EclipseLib.Flags) do
-        if v.Save then
-            if v.Type == "Colorpicker" then
-                Data[i] = PackColor(v.Value)
-            else
-                Data[i] = v.Value
-            end
-        end    
-    end
-    writefile(EclipseLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
-end
-
--- Initialize the library and make sure all the configurations are set up
-function EclipseLib:Init()
-    if EclipseLib.SaveCfg then    
-        pcall(function()
-            if isfile(EclipseLib.Folder .. "/" .. game.GameId .. ".txt") then
-                LoadCfg(readfile(EclipseLib.Folder .. "/" .. game.GameId .. ".txt"))
-                EclipseLib:MakeNotification({
-                    Name = "Configuration",
-                    Content = "Auto-loaded configuration for the game " .. game.GameId .. ".",
-                    Time = 5
-                })
-            end
-        end)        
-    end    
-end    
-
--- Example function to create a window
-function EclipseLib:MakeWindow(WindowConfig)
-    local FirstTab = true
-    local Minimized = false
-    local Loaded = false
-    local UIHidden = false
-
-    WindowConfig = WindowConfig or {}
-    WindowConfig.Name = WindowConfig.Name or "Eclipse Library"
-    WindowConfig.ConfigFolder = WindowConfig.ConfigFolder or WindowConfig.Name
-    WindowConfig.SaveConfig = WindowConfig.SaveConfig or false
-    WindowConfig.HidePremium = WindowConfig.HidePremium or false
-    if WindowConfig.IntroEnabled == nil then
-        WindowConfig.IntroEnabled = true
-    end
-    WindowConfig.IntroText = WindowConfig.IntroText or "Eclipse Library"
-    WindowConfig.CloseCallback = WindowConfig.CloseCallback or function() end
-    WindowConfig.ShowIcon = WindowConfig.ShowIcon or false
-    WindowConfig.Icon = WindowConfig.Icon or "rbxassetid://8834748103"
-    WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://8834748103"
-    EclipseLib.Folder = WindowConfig.ConfigFolder
-    EclipseLib.SaveCfg = WindowConfig.SaveConfig
-
-    -- Create the main window
-    local Window = Create("Frame", {
-        Size = UDim2.new(0, 400, 0, 300),
-        Position = UDim2.new(0.5, -200, 0.5, -150),
-        BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main,
-        BorderSizePixel = 0,
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Name = "MainWindow"
-    })
-    local TitleBar = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke,
-        BorderSizePixel = 0
-    }, { 
-        Create("TextLabel", {
-            Text = WindowConfig.IntroText,
-            Size = UDim2.new(1, 0, 1, 0),
-            TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text,
-            Font = Enum.Font.Gotham,
-            TextSize = 20,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Center
-        }) 
-    })
-
-    -- Drag functionality for the window
-    AddDraggingFunctionality(TitleBar, Window)
-end
+-- Initialize all UI components
+EclipseLib:CreateColorPicker(Eclipse)
+EclipseLib:CreateSlider(Eclipse, 0, 100, 50, function(value) print("Slider Value: ", value) end)
+EclipseLib:CreateToggleButton(Eclipse)
+EclipseLib:CreateTextBox(Eclipse)
+EclipseLib:CreateThemePicker(Eclipse)
 
 return EclipseLib
