@@ -1,10 +1,10 @@
+-- Services
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
 
+-- EclipseLib Definition
 local EclipseLib = {
     Elements = {},
     ThemeObjects = {},
@@ -17,209 +17,167 @@ local EclipseLib = {
             Stroke = Color3.fromRGB(70, 130, 180),   -- Steel Blue (for borders/strokes)
             Divider = Color3.fromRGB(176, 224, 230), -- Powder Blue (used for dividing lines)
             Text = Color3.fromRGB(0, 0, 0),           -- Black (for text)
-            TextDark = Color3.fromRGB(0, 0, 139)      -- Dark Blue (for dark text, optional)
-        },
-        Dark = {
-            Main = Color3.fromRGB(30, 30, 30),
-            Second = Color3.fromRGB(60, 60, 60),
-            Stroke = Color3.fromRGB(100, 100, 100),
-            Divider = Color3.fromRGB(80, 80, 80),
-            Text = Color3.fromRGB(255, 255, 255),
-            TextDark = Color3.fromRGB(255, 255, 255)
+            TextDark = Color3.fromRGB(0, 0, 139)      -- Dark Blue (for dark text)
         }
     },
-    SelectedTheme = "Default",
+    SelectedTheme = "Default",  -- Default theme set
     Folder = nil,
     SaveCfg = false
 }
 
-local Icons = {}
+-- Function to create a loading screen
+local function CreateLoadingScreen()
+    local loadingScreen = Instance.new("ScreenGui")
+    loadingScreen.Parent = game.Players.LocalPlayer.PlayerGui
 
--- Load Feather Icons (optional)
-local Success, Response = pcall(function()
-    Icons = HttpService:JSONDecode(game:HttpGetAsync("https://cdn.discordapp.com/attachments/1311412106549133523/1311466353827385395/Radioactive-1--Streamline-Core.png?ex=6748f5b8&is=6747a438&hm=0aea12727268c76788b82894871a930fcbaffd3f879bcccd0d641d2b62c33a82&")).icons
-end)
+    -- Background Frame for the loading screen
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Transparent background
+    frame.BackgroundTransparency = 0.8  -- Slight transparency
+    frame.BorderSizePixel = 0
+    frame.Parent = loadingScreen
 
-if not Success then
-    warn("\nEclipse Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
-end    
+    -- Loading Text Label
+    local loadingText = Instance.new("TextLabel")
+    loadingText.Size = UDim2.new(0, 300, 0, 40)
+    loadingText.Position = UDim2.new(0.5, -150, 0.5, -20)
+    loadingText.BackgroundTransparency = 1
+    loadingText.Text = "Loading"
+    loadingText.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+    loadingText.Font = Enum.Font.GothamBold
+    loadingText.TextSize = 18  -- Smaller font size
+    loadingText.TextStrokeTransparency = 0.5
+    loadingText.TextTransparency = 0
+    loadingText.Parent = frame
 
-local function GetIcon(IconName)
-    if Icons[IconName] then
-        return Icons[IconName]
-    else
-        return nil
+    -- Slow-loading animation for text
+    local dotCount = 0
+    local dots = { ".", "..", "..." }
+    local function updateLoadingText()
+        dotCount = (dotCount % 3) + 1
+        loadingText.Text = "Loading" .. dots[dotCount]
     end
+
+    -- Loop the animation every 1 second (slower pace)
+    game:GetService("RunService").Heartbeat:Connect(function()
+        updateLoadingText()
+    end)
+
+    -- Remove loading screen after 5 seconds, then show the main UI
+    delay(5, function()
+        loadingScreen:Destroy()  -- Remove loading screen
+        CreateMainUI()  -- Show the main UI after loading
+    end)
 end
 
-local Eclipse = Instance.new("ScreenGui")
-Eclipse.Name = "Eclipse"
-if syn then
-    syn.protect_gui(Eclipse)
-    Eclipse.Parent = game.CoreGui
-else
-    Eclipse.Parent = gethui() or game.CoreGui
+-- Create the main UI after loading screen finishes
+local function CreateMainUI()
+    -- Example of creating a button in the main UI
+    CreateButton("Click Me", UDim2.new(0, 200, 0, 50), UDim2.new(0.5, -100, 0.5, -25), function()
+        print("Button clicked!")
+    end)
+
+    -- Example of creating a window in the main UI
+    CreateWindow("My Window", UDim2.new(0, 400, 0, 300), UDim2.new(0.5, -200, 0.5, -150), function()
+        print("Window closed!")
+    end)
 end
 
-if gethui then
-    for _, Interface in ipairs(gethui():GetChildren()) do
-        if Interface.Name == Eclipse.Name and Interface ~= Eclipse then
-            Interface:Destroy()
+-- Function to create a button
+local function CreateButton(Text, Size, Position, ClickCallback)
+    local Button = Instance.new("TextButton")
+    Button.Size = Size
+    Button.Position = Position
+    Button.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+    Button.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+    Button.Text = Text
+    Button.Font = Enum.Font.Gotham
+    Button.TextSize = 18
+    Button.BorderSizePixel = 2
+    Button.BorderColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke
+    Button.Parent = game.Players.LocalPlayer.PlayerGui:WaitForChild("ScreenGui")
+
+    -- Hover effect
+    Button.MouseEnter:Connect(function()
+        Button.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Second
+    end)
+    
+    Button.MouseLeave:Connect(function()
+        Button.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+    end)
+
+    -- Button click functionality
+    Button.MouseButton1Click:Connect(function()
+        if ClickCallback then
+            ClickCallback()
         end
-    end
-else
-    for _, Interface in ipairs(game.CoreGui:GetChildren()) do
-        if Interface.Name == EclipseLib.Name and Interface ~= Eclipse then
-            Interface:Destroy()
+    end)
+end
+
+-- Function to create a window
+local function CreateWindow(Name, Size, Position, CloseCallback)
+    local Window = Instance.new("Frame")
+    Window.Size = Size
+    Window.Position = Position
+    Window.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
+    Window.BorderSizePixel = 2
+    Window.BorderColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke
+    Window.Parent = game.Players.LocalPlayer.PlayerGui:WaitForChild("ScreenGui")
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.BackgroundTransparency = 1
+    Title.Text = Name
+    Title.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 24
+    Title.Parent = Window
+
+    -- Close Button
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Size = UDim2.new(0, 50, 0, 50)
+    CloseButton.Position = UDim2.new(1, -50, 0, 0)
+    CloseButton.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke
+    CloseButton.Text = "X"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 0, 0)
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 20
+    CloseButton.Parent = Window
+
+    CloseButton.MouseButton1Click:Connect(function()
+        Window:Destroy()
+        if CloseCallback then
+            CloseCallback()
         end
-    end
-end
+    end)
 
--- Function to create a Color Picker
-function EclipseLib:CreateColorPicker(parent)
-    local ColorpickerBox = Instance.new("Frame")
-    ColorpickerBox.Size = UDim2.new(0, 24, 0, 24)
-    ColorpickerBox.Position = UDim2.new(0.5, -12, 0.5, 0)
-    ColorpickerBox.AnchorPoint = Vector2.new(0.5, 0.5)
-    ColorpickerBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ColorpickerBox.BorderSizePixel = 0
-    ColorpickerBox.Parent = parent
-
-    local ColorpickerFrame = Instance.new("Frame")
-    ColorpickerFrame.Size = UDim2.new(1, 0, 0, 38)
-    ColorpickerFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ColorpickerFrame.Parent = parent
-    
-    local ColorPickerToggle = Instance.new("TextButton")
-    ColorPickerToggle.Text = "Pick Color"
-    ColorPickerToggle.Size = UDim2.new(0, 150, 0, 50)
-    ColorPickerToggle.Position = UDim2.new(0.5, -75, 0.5, 50)
-    ColorPickerToggle.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-    ColorPickerToggle.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    ColorPickerToggle.Font = Enum.Font.Gotham
-    ColorPickerToggle.TextSize = 18
-    ColorPickerToggle.Parent = parent
-    
-    local function UpdateColorPicker()
-        ColorpickerBox.BackgroundColor3 = Color3.fromHSV(math.random(), 1, 1)  -- Update to random color for simplicity
-        ColorPickerToggle.BackgroundColor3 = ColorpickerBox.BackgroundColor3
-    end
-    
-    ColorPickerToggle.MouseButton1Click:Connect(UpdateColorPicker)
-end
-
--- Function to create Slider
-function EclipseLib:CreateSlider(parent, min, max, initial, callback)
-    local slider = Instance.new("Frame")
-    slider.Size = UDim2.new(0, 200, 0, 25)
-    slider.Position = UDim2.new(0.5, -100, 0.5, 100)
-    slider.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-    slider.Parent = parent
-    
-    local sliderBar = Instance.new("Frame")
-    sliderBar.Size = UDim2.new(1, 0, 0, 5)
-    sliderBar.Position = UDim2.new(0, 0, 0.5, -2)
-    sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    sliderBar.Parent = slider
-    
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 10, 0, 25)
-    knob.Position = UDim2.new(initial / max, -5, 0, 0)
-    knob.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    knob.Parent = slider
-    
+    -- Drag functionality
     local dragging = false
-    knob.MouseButton1Down:Connect(function()
+    local dragInput, dragStart, startPos
+    local function beginDrag(input)
         dragging = true
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
+        dragStart = input.Position
+        startPos = Window.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+
+    local function updateDrag(input)
         if dragging then
-            local position = math.clamp((input.Position.X - slider.Position.X.Offset) / slider.Size.X.Offset, 0, 1)
-            knob.Position = UDim2.new(position, -5, 0, 0)
-            callback(position * max)
+            local delta = input.Position - dragStart
+            Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if dragging then
-            dragging = false
-        end
-    end)
+    end
+
+    Window.InputBegan:Connect(beginDrag)
+    Window.InputChanged:Connect(updateDrag)
+
+    return Window
 end
 
--- Function to create Toggle Button
-function EclipseLib:CreateToggleButton(parent)
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0, 150, 0, 50)
-    toggleButton.Position = UDim2.new(0.5, -75, 0.5, 150)
-    toggleButton.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-    toggleButton.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    toggleButton.Font = Enum.Font.Gotham
-    toggleButton.TextSize = 18
-    toggleButton.Text = "Toggle"
-    toggleButton.Parent = parent
-    
-    local isOn = false
-    toggleButton.MouseButton1Click:Connect(function()
-        isOn = not isOn
-        toggleButton.BackgroundColor3 = isOn and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    end)
-end
-
--- Function to create Text Box
-function EclipseLib:CreateTextBox(parent)
-    local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(0, 200, 0, 50)
-    textBox.Position = UDim2.new(0.5, -100, 0.5, 200)
-    textBox.PlaceholderText = "Enter text"
-    textBox.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-    textBox.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    textBox.Font = Enum.Font.Gotham
-    textBox.TextSize = 18
-    textBox.Parent = parent
-end
-
--- Function to create Theme Picker
-function EclipseLib:CreateThemePicker(parent)
-    local themeButton = Instance.new("TextButton")
-    themeButton.Size = UDim2.new(0, 150, 0, 50)
-    themeButton.Position = UDim2.new(0.5, -75, 0.5, 300)
-    themeButton.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-    themeButton.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    themeButton.Font = Enum.Font.Gotham
-    themeButton.TextSize = 18
-    themeButton.Text = "Change Theme"
-    themeButton.Parent = parent
-    
-    themeButton.MouseButton1Click:Connect(function()
-        EclipseLib.SelectedTheme = EclipseLib.SelectedTheme == "Default" and "Dark" or "Default"
-        themeButton.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-        themeButton.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    end)
-end
-
--- Function to create a Close Button
-function EclipseLib:CreateCloseButton(parent)
-    local closeButton = Instance.new("TextButton")
-    closeButton.Size = UDim2.new(0, 100, 0, 50)
-    closeButton.Position = UDim2.new(0.5, -50, 0.5, 400)
-    closeButton.Text = "Close UI"
-    closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeButton.Font = Enum.Font.Gotham
-    closeButton.TextSize = 18
-    closeButton.Parent = parent
-
-    closeButton.MouseButton1Click:Connect(function()
-        Eclipse:Destroy()
-    end)
-end
-
--- Example Usage:
-EclipseLib:CreateColorPicker(Eclipse)
-EclipseLib:CreateSlider(Eclipse, 0, 100, 50, function(value) print("Slider Value: " .. value) end)
-EclipseLib:CreateToggleButton(Eclipse)
-EclipseLib:CreateTextBox(Eclipse)
-EclipseLib:CreateThemePicker(Eclipse)
-EclipseLib:CreateCloseButton(Eclipse)
+-- Start the loading screen when the script runs
+CreateLoadingScreen()
