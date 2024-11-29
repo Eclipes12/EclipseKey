@@ -1,127 +1,112 @@
--- Services
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
+local EclipseLib = {}
+EclipseLib.Elements = {}
 
--- EclipseLib Definition (Simplified for the window creation)
-local EclipseLib = {
-    Elements = {},
-    ThemeObjects = {},
-    Connections = {},
-    Flags = {},
-    Themes = {
-        Default = {
-            Main = Color3.fromRGB(135, 206, 235),    -- Light Sky Blue (background)
-            Second = Color3.fromRGB(173, 216, 230),  -- Light Blue (lighter elements)
-            Stroke = Color3.fromRGB(70, 130, 180),   -- Steel Blue (for borders/strokes)
-            Divider = Color3.fromRGB(176, 224, 230), -- Powder Blue (used for dividing lines)
-            Text = Color3.fromRGB(0, 0, 0),           -- Black (for text)
-            TextDark = Color3.fromRGB(0, 0, 139)      -- Dark Blue (for dark text)
-        }
-    },
-    SelectedTheme = "Default",  -- Default theme set
-    Folder = nil,
-    SaveCfg = false
-}
+-- Create the main window
+function EclipseLib:MakeWindow(config)
+    local Window = Instance.new("Frame")
+    local Title = Instance.new("TextLabel")
+    local Panel = Instance.new("Frame")
+    local LeftSidebar = Instance.new("Frame")
 
--- Function to create a loading screen
-local function CreateLoadingScreen()
-    local loadingScreen = Instance.new("ScreenGui")
-    loadingScreen.Parent = game.Players.LocalPlayer.PlayerGui
+    -- Window properties
+    Window.Name = config.Name or "Window"
+    Window.Size = UDim2.new(0, 608, 0, 427)
+    Window.Position = UDim2.new(0.5, -304, 0.5, -213)
+    Window.BackgroundColor3 = Color3.fromRGB(32, 34, 33)
+    Window.BorderSizePixel = 0
 
-    -- Background Frame for the loading screen
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Transparent background
-    frame.BackgroundTransparency = 0.8  -- Slight transparency
-    frame.BorderSizePixel = 0
-    frame.Parent = loadingScreen
+    -- Panel for Title
+    Panel.Parent = Window
+    Panel.Size = UDim2.new(1, -20, 0, 50)
+    Panel.Position = UDim2.new(0, 10, 0, 10)
+    Panel.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
 
-    -- Loading Text Label
-    local loadingText = Instance.new("TextLabel")
-    loadingText.Size = UDim2.new(0, 300, 0, 40)
-    loadingText.Position = UDim2.new(0.5, -150, 0.5, -20)
-    loadingText.BackgroundTransparency = 1
-    loadingText.Text = "Loading"
-    loadingText.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    loadingText.Font = Enum.Font.GothamBold
-    loadingText.TextSize = 18  -- Smaller font size
-    loadingText.TextStrokeTransparency = 0.5
-    loadingText.TextTransparency = 0
-    loadingText.Parent = frame
+    Title.Parent = Panel
+    Title.Size = UDim2.new(1, -10, 1, -10)
+    Title.Position = UDim2.new(0, 5, 0, 5)
+    Title.Text = config.Name or "Eclipse UI"
+    Title.TextColor3 = Color3.fromRGB(240, 240, 240)
+    Title.Font = Enum.Font.SourceSansBold
+    Title.TextScaled = true
+    Title.BackgroundTransparency = 1
 
-    -- Slow-loading animation for text
-    local dotCount = 0
-    local dots = { ".", "..", "..." }
-    local function updateLoadingText()
-        dotCount = (dotCount % 3) + 1
-        loadingText.Text = "Loading" .. dots[dotCount]
+    -- Sidebar for tabs
+    LeftSidebar.Parent = Window
+    LeftSidebar.Size = UDim2.new(0, 150, 1, -70)
+    LeftSidebar.Position = UDim2.new(0, 10, 0, 60)
+    LeftSidebar.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
+
+    self.Elements.Window = Window
+    return Window
+end
+
+-- Create a tab
+function EclipseLib:MakeTab(config)
+    local Tab = Instance.new("TextButton")
+    Tab.Size = UDim2.new(1, -20, 0, 40)
+    Tab.Position = UDim2.new(0, 10, 0, #self.Elements.Tabs * 50)
+    Tab.Text = config.Name
+    Tab.Font = Enum.Font.SourceSansBold
+    Tab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Tab.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+
+    -- Optional icon
+    if config.Icon then
+        local Icon = Instance.new("ImageLabel")
+        Icon.Parent = Tab
+        Icon.Size = UDim2.new(0, 30, 0, 30)
+        Icon.Position = UDim2.new(0, 5, 0.5, -15)
+        Icon.Image = config.Icon
+        Icon.BackgroundTransparency = 1
     end
 
-    -- Loop the animation every 1 second (slower pace)
-    game:GetService("RunService").Heartbeat:Connect(function()
-        updateLoadingText()
-    end)
-
-    -- Remove loading screen after 5 seconds, then show the main UI
-    delay(5, function()
-        loadingScreen:Destroy()  -- Remove loading screen
-        CreateMainUI()  -- Show the main UI after loading
-    end)
+    table.insert(self.Elements.Tabs, Tab)
+    return Tab
 end
 
--- Function to create the main UI after the loading screen finishes
-local function CreateMainUI()
-    -- Create the window
-    local Window = Instance.new("Frame")
-    Window.Size = UDim2.new(0, 400, 0, 300)
-    Window.Position = UDim2.new(0.5, -200, 0.5, -150)
-    Window.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Main
-    Window.BorderSizePixel = 2
-    Window.BorderColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke
-    Window.Parent = game.Players.LocalPlayer.PlayerGui
+-- Add a section
+function EclipseLib:AddSection(tab, config)
+    local Section = Instance.new("Frame")
+    Section.Size = UDim2.new(1, -20, 0, 100)
+    Section.Position = UDim2.new(0, 10, 0, #self.Elements.Sections * 110)
+    Section.BackgroundColor3 = Color3.fromRGB(43, 43, 43)
 
-    -- Title for the window
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 50)
-    Title.BackgroundTransparency = 1
-    Title.Text = "Eclipse UI Window"
-    Title.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 24
-    Title.Parent = Window
+    local SectionTitle = Instance.new("TextLabel")
+    SectionTitle.Parent = Section
+    SectionTitle.Size = UDim2.new(1, -10, 0, 30)
+    SectionTitle.Position = UDim2.new(0, 5, 0, 5)
+    SectionTitle.Text = config.Name
+    SectionTitle.TextColor3 = Color3.fromRGB(240, 240, 240)
+    SectionTitle.Font = Enum.Font.SourceSansBold
+    SectionTitle.TextScaled = true
+    SectionTitle.BackgroundTransparency = 1
 
-    -- Close Button for the window
-    local CloseButton = Instance.new("TextButton")
-    CloseButton.Size = UDim2.new(0, 50, 0, 50)
-    CloseButton.Position = UDim2.new(1, -50, 0, 0)
-    CloseButton.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Stroke
-    CloseButton.Text = "X"
-    CloseButton.TextColor3 = Color3.fromRGB(255, 0, 0)
-    CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.TextSize = 20
-    CloseButton.Parent = Window
-
-    CloseButton.MouseButton1Click:Connect(function()
-        Window:Destroy()
-    end)
-
-    -- Create a button inside the window
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 200, 0, 50)
-    button.Position = UDim2.new(0.5, -100, 0.5, -25)
-    button.BackgroundColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Second
-    button.Text = "Click Me!"
-    button.TextColor3 = EclipseLib.Themes[EclipseLib.SelectedTheme].Text
-    button.Font = Enum.Font.Gotham
-    button.TextSize = 18
-    button.Parent = Window
-
-    button.MouseButton1Click:Connect(function()
-        print("Button Clicked!")
-    end)
+    table.insert(self.Elements.Sections, Section)
+    return Section
 end
 
--- Start by showing the loading screen
-CreateLoadingScreen()
+-- Add a button
+function EclipseLib:AddButton(section, config)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, -20, 0, 40)
+    Button.Position = UDim2.new(0, 10, 0, #self.Elements.Buttons * 50)
+    Button.Text = config.Name
+    Button.Font = Enum.Font.SourceSansBold
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+
+    -- Add callback
+    Button.MouseButton1Click:Connect(config.Callback)
+
+    table.insert(self.Elements.Buttons, Button)
+    return Button
+end
+
+-- Initialize UI
+function EclipseLib:Init()
+    for _, element in pairs(self.Elements) do
+        element.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    end
+end
+
+return EclipseLib
